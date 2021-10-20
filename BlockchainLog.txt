@@ -1,0 +1,269 @@
+PROCESS 0:
+Linh Do's rudimentary block chain
+Using processID 0
+
+Starting the Blockchain server input thread using 4930
+Starting the Block Ledger server input thread using 5120
+Starting Key Server input thread using 4710
+Starting the Unverified Block Server input thread using 4820
+The public key for process 0 is MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCBZHsMSoAf4CkR55czF0njx05ZwwboFPTs0IGNBNdQNcX8jMDzZuazqtfkSei/9TyleAWVhbpOEx75+oj9wiW95ISJGHVAz7mX1+2lRzrBMabKFSwswa0WT+8g78kxSs0qi0JpPI3kZMNFpmpk780DRBPPKXYbu4oIma5lFkVqmwIDAQAB
+Using input file: BlockInput0.txt
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Sending UVBs to process 0...
+Got connection to UVB Server.
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Received UVB:  2021-03-03.21:32:46.2
+Received UVB:  2021-03-03.21:32:44.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.1
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Sending UVBs to process 1...
+Received UVB:  2021-03-03.21:32:45.0
+Sending UVBs to process 2...
+Starting the Unverified Block Priority Queue Consumer thread.
+
+Consumer got unverified: Sean Willow
+Consumer got unverified: Sean Willow
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Alison Clair
+Consumer got unverified: Alison Clair
+Consumer got unverified: Anna Landon
+Consumer got unverified: John Sonnett
+Consumer got unverified: Carrie Diary
+
+PROCESS 1:
+Linh Do's rudimentary block chain
+Using processID 1
+
+Starting the Blockchain server input thread using 4931
+Starting Key Server input thread using 4711
+Starting the Unverified Block Server input thread using 4821
+Starting the Block Ledger server input thread using 5121
+The public key for process 1 is MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCGQnwF9MaHkoMX8V2pZEoNuJKE9oDwdSum0SmvOUcGXA3cssv/7ZVYctqJYgDArQUFt8KvOhQuRKKXodTTDdLsFkxJZnBBijwTbC15j+ztRpsP+XtMKHO7i1fGdXHvu9kT5sQCv6tflRZy88tCn81DNjbQNKw+PhAs10zcMeqQLQIDAQAB
+Using input file: BlockInput1.txt
+Sending UVBs to process 0...
+Got connection to UVB Server.
+Sending UVBs to process 1...
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Sending UVBs to process 2...
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Starting the Unverified Block Priority Queue Consumer thread.
+
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.0
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Alison Clair
+Consumer got unverified: Anna Landon
+Consumer got unverified: Anna Landon
+Consumer got unverified: Anna Landon
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary
+
+PROCESS 2:
+Linh Do's rudimentary block chain
+Using processID 2
+
+Starting the Unverified Block Server input thread using 4822
+Starting the Blockchain server input thread using 4932
+Starting Key Server input thread using 4712
+Starting the Block Ledger server input thread using 5122
+The public key for process 2 is MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCYZcaG/OBMJEa7wsE+vjQRiKC4oHibsAK1N6NMklFLrOakYRi5IiQmjKQ68O/yn2R1Q9nXrcZefW3k2wJboEUOF9j4HRxlTQaUU/Ks+WrgpmFrhbvwRwNr5CQavSMsk5mMVXyn6Y3zNPezk/vMUnmz7Fz9a5ezKXOuHFUZApuakwIDAQAB
+Using input file: BlockInput2.txt
+Sending UVBs to process 0...
+Sending UVBs to process 1...
+Sending UVBs to process 2...
+Got connection to UVB Server.
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Starting the Unverified Block Priority Queue Consumer thread.
+
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:45.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:46.2
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Megan Kelly
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:45.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.0
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Alison Clair
+Consumer got unverified: Alison Clair
+Consumer got unverified: Anna Landon
+Consumer got unverified: Anna Landon
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary

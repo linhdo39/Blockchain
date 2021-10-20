@@ -1,0 +1,1067 @@
+/*--------------------------------------------------------
+
+1. Name / Date:
+My Linh Do / 03.03.2021
+
+2. Java version used, if not the official version for the class:
+
+build 10.0.2+13
+
+3. Precise command-line compilation examples / instructions:
+
+> javac -cp "gson-2.8.2.jar" Blockchain.java
+
+4. Precise examples / instructions to run this program:
+
+>start java -cp ".;gson-2.8.2.jar" Blockchain 0
+> start java -cp ".;gson-2.8.2.jar" Blockchain 1
+>java -cp ".;gson-2.8.2.jar" Blockchain 2
+
+
+5. List of files needed for running the program.
+
+checklist-block.html
+Blockchain.java
+BlockchainLog.txt
+BlockchainLedgerSample.json
+BlockInput0.txt, BlockInput1.txt, BlockInput2.txt
+
+6. Notes:
+The code is not completed so there are a lot of bugs. I managed to create a public key but could not
+figure out how to use public key and private key to verify the block record. Also I created Process Block but
+ended up not using it. For the basic of block chain, the code works decently well when it is only one process.
+When the other two processes involves, I haven't had trouble running it but it would occasionally produce a ledger
+with duplicate value. The duplicated block record happened when I ran it because the time stamp is identical to each 
+other so the program could not sorted it out prior. 
+
+For the digital key, I was able to do simple implementation with it by using a short string.
+I used a lot of the ultilities codes with some modifications. 
+
+Credit web source code:
+https://mkyong.com/java/how-to-parse-json-with-gson/
+http://www.java2s.com/Code/Java/Security/SignatureSignAndVerify.htm
+https://www.mkyong.com/java/java-digital-signatures-example/ (not so clear)
+https://javadigest.wordpress.com/2012/08/26/rsa-encryption-example/
+https://www.programcreek.com/java-api-examples/index.php?api=java.security.SecureRandom
+https://www.mkyong.com/java/java-sha-hashing-example/
+https://stackoverflow.com/questions/19818550/java-retrieve-the-actual-value-of-the-public-key-from-the-keypair-object
+https://www.java67.com/2014/10/how-to-pad-numbers-with-leading-zeroes-in-Java-example.html
+http://www.fredosaurus.com/notes-java/data/strings/96string_examples/example_stringToArray.html
+https://www.quickprogrammingtips.com/java/how-to-generate-sha256-hash-in-java.html
+https://dzone.com/articles/generate-random-alpha-numeric
+----------------------------------------------------------*/
+//import java library
+import java.io.*;  
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.io.StringWriter;
+import java.io.StringReader;
+import java.io.BufferedReader;
+import java.security.*;
+import java.security.Security;
+import java.security.spec.X509EncodedKeySpec;
+import java.text.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+//to store the process ID and their corresponding public key
+class ProcessBlock{
+	int processID;
+	byte[] pubKey;
+	
+	public int getPID(){
+		return this.processID;
+	}
+	
+	public PublicKey getPubKey(){
+		PublicKey RestoredKey = null;
+		try {
+			X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(pubKey);
+			KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+			RestoredKey = keyFactory.generatePublic(pubSpec);
+			return RestoredKey;
+		} catch (Exception e) {}
+		return RestoredKey;
+	}
+	public void setProcessID (int pid) {
+		this.processID = pid;
+	}
+	
+	public void setPubKey (String input) {
+		Gson gson = new Gson();					
+		String convert = gson.fromJson(input, String.class);		//convert Json object to string
+		byte[] pubKey = Base64.getDecoder().decode(convert);		//convert the string back the byte format
+		this.pubKey = pubKey;
+	}
+}
+
+//to store all the port numbers 
+class Ports {			
+    public static int KeyServerPortBase = 4710;					//to receive public key
+    public static int UnverifiedBlockServerPortBase = 4820;		//to receive UVB
+    public static int BlockchainServerPortBase = 4930;			//to receive the block chain
+	public static int BlockLedgerServerPortBase = 5120;			//to receive the block ledger 
+
+    public static int KeyServerPort;
+    public static int UnverifiedBlockServerPort;
+    public static int BlockchainServerPort;
+	public static int BlockLedgerServerPort;
+
+    public void setPorts(int PID){
+		KeyServerPort = KeyServerPortBase + PID;
+		UnverifiedBlockServerPort = UnverifiedBlockServerPortBase + PID;
+		BlockchainServerPort = BlockchainServerPortBase + PID;
+		BlockLedgerServerPort = BlockLedgerServerPortBase + PID;
+    }
+}
+
+//Block record class with all its attributes
+class BlockRecord implements Serializable{
+	String BlockID;
+	String TimeStamp;
+	String Fname;
+	String Lname;
+	String SSNum;
+	String DOB;
+	String favorite_show;
+	String steamingService;
+	String NextShow;
+	String VerificationProcessID;
+	String Hash;
+	String PreviousHash; 
+	String RandomSeed;
+	String creatorProcess;
+	byte [] creatorSigned;
+	
+	//getter ang setter functions
+	public void setBlockID(String BID){this.BlockID = BID;}
+	public void setTimeStamp(String TS){this.TimeStamp = TS;}
+	public void setVerificationProcessID(String VID){this.VerificationProcessID = VID;}
+	public void setPreviousHash (String PH){this.PreviousHash = PH;}
+	public void setLname (String LN){this.Lname = LN;}
+	public void setFname (String FN){this.Fname = FN;}
+	public void setSSNum (String SS){this.SSNum = SS;}
+	public void setDOB (String RS){this.DOB = RS;}
+	public void setfavorite_show (String str){this.favorite_show = str;}
+	public void setsteamingService (String str){this.steamingService = str;}
+	public void setNextShow (String NextShow){this.NextShow = NextShow;}
+	public void setRandomSeed (String RS){this.RandomSeed = RS;}
+	public void setHash (String input){this.Hash = input;}	
+	public void setCreatorProcess(String input){this.creatorProcess = input;}
+	public void setCreatorSigned (byte[] input) {this.creatorSigned = input;}
+  
+	public String getTimeStamp() {return TimeStamp;}
+	public String getPreviousHash() {return this.PreviousHash;}
+	public String getLname() {return this.Lname;}
+	public String getFname() {return this.Fname;}
+	public String getHash() {return this.Hash;}
+	public String getCreator() {return this.creatorProcess;}
+	public byte [] getCreatorSigned() {return this.creatorSigned;}
+	//this reduces the time the work has to search to concatenate the data
+	public String getData(){
+		String data = BlockID + Fname + Lname + SSNum + DOB + favorite_show + steamingService + NextShow + PreviousHash + TimeStamp;
+		return data;
+	}
+}
+
+//to process the public key received from the socket, I was not able to implement this correctly
+class PublicKeyWorker extends Thread { 
+    Socket keySock; 
+    PublicKeyWorker (Socket s) {keySock = s;} 	//constructor for PublicKeyWorker
+    
+	public void run(){
+		ProcessBlock PB = new ProcessBlock();
+		try{
+			BufferedReader in = new BufferedReader(new InputStreamReader(keySock.getInputStream()));
+			for (int i = 0; i <2; ++i){			
+				String data = in.readLine ();
+				if(i == 0)										//since I sent PID and public key separately, this is to 
+					PB.setProcessID(Integer.parseInt(data));	//make sure the information received is inputted correctly
+				else {
+					PB.setPubKey(data);							//set public key in processBlock 
+					if(PB.getPID() == Blockchain.PID) {
+						Gson gson = new Gson();
+						String convert = gson.fromJson(data, String.class);			//convert the json object to string of public key
+						System.out.println("The public key for process " + Blockchain.PID +" is "
+											+ convert);			//print out public key
+					}
+				}
+			}
+			
+			//I was planning to use this to keep track of the public key for each process to ensure the validity of the block
+			for (ProcessBlock element: Blockchain.processBlock){
+				if(element.getPID() != PB.getPID()) {
+					Blockchain.processBlock.add(PB);
+					break;
+				}
+			}
+			keySock.close(); 
+		} catch (IOException x){x.printStackTrace();} //for any exception
+    }
+}
+
+//class to start the public key server
+class PublicKeyServer implements Runnable {
+        
+    public void run(){
+		int q_len = 6;
+		Socket keySock;
+		System.out.println("Starting Key Server input thread using " + Integer.toString(Ports.KeyServerPort));
+		try{
+			ServerSocket servsock = new ServerSocket(Ports.KeyServerPort, q_len); 	//start a server
+			while (true) {															//listen to and accept request from socket
+				keySock = servsock.accept();
+				new PublicKeyWorker (keySock).start(); 								//start a new worker
+			}
+		}catch (IOException ioe) {System.out.println(ioe);}							//for any exception
+    }
+}   
+ 
+//to store all the block record received from the socket for later use 
+class UnverifiedBlockServer implements Runnable {
+    PriorityBlockingQueue<BlockRecord> queue;		
+    UnverifiedBlockServer(PriorityBlockingQueue<BlockRecord> queue){
+		this.queue = queue; 
+    }
+	
+	//to compare the time stamp for priority queue
+    /*public static Comparator<BlockRecord> BlockTSComparator = new Comparator<BlockRecord>(){
+		@Override
+		public int compare(BlockRecord b1, BlockRecord b2) {
+			String s1 = b1.getTimeStamp();
+			String s2 = b2.getTimeStamp();
+			if (s1 == s2) {return 0;}
+			if (s1 == null) {return -1;}
+			if (s2 == null) {return 1;}
+			return s1.compareTo(s2);
+		}
+    };*/
+
+    class UnverifiedBlockWorker extends Thread { 
+		Socket sock; 
+		UnverifiedBlockWorker (Socket s) {sock = s;} 
+		
+		public void run(){
+			String blockDataIn;
+			String blockData ="";
+			try{
+				BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+				while((blockDataIn = in.readLine()) != null){		//read in the information from the socket
+						blockData += blockDataIn;					//retrieve the json string				
+				}
+				Gson gson = new Gson();		
+				BlockRecord BR = gson.fromJson(blockData, BlockRecord.class);		//convert the json string back to Block record type
+				System.out.println("Received UVB: " + BR.getTimeStamp());	//print out the time received the block record
+				queue.put(BR);												//put the block record into the Priority queue
+				sock.close(); 
+			} catch (Exception x){}						//for any exception
+		}
+	}
+  
+	public void run(){
+		int q_len = 6;
+		Socket sock;
+		System.out.println("Starting the Unverified Block Server input thread using " +
+		       Integer.toString(Ports.UnverifiedBlockServerPort));
+		
+		try{
+			ServerSocket UVBServer = new ServerSocket(Ports.UnverifiedBlockServerPort, q_len);		//start a new server
+			while (true) {														//listen to and accept request from socket
+				sock = UVBServer.accept(); 
+				System.out.println("Got connection to UVB Server.");
+				new UnverifiedBlockWorker(sock).start(); 						//start a new worker 
+			}
+		}catch (IOException ioe) {System.out.println(ioe);}						//for any exception
+	}
+}
+
+//to consume the block received from the socket
+class UnverifiedBlockConsumer implements Runnable {
+	BlockingQueue<BlockRecord> queue; 
+	UnverifiedBlockConsumer(BlockingQueue<BlockRecord> queue){
+		this.queue = queue; 
+	}
+	
+	public void run(){
+		String previousHash;				//to get previous hash
+		PrintStream toBlockChainServer;		//to send information to the server
+		Socket BlockChainSock;				//socket
+		BlockRecord tempRec,temp = null;				//temporary block record
+		boolean verified = true;						//for signature verification
+		System.out.println("Starting the Unverified Block Priority Queue Consumer thread.\n");
+		try{
+			while(true){
+				tempRec = queue.take(); 	// take the first element from the queue
+				System.out.println("Consumer got unverified: " + tempRec.getFname() +" " + tempRec.getLname());
+				
+				//go through the process block array, which contains all the public keys and the corresponsing process ID
+				for(ProcessBlock block: Blockchain.processBlock) {
+					//if the process ID matches with the unverified block record's creator ID
+					if(block.getPID() == Integer.parseInt(tempRec.getCreator())){
+						//set the value of verified to watch the method return
+						verified = Blockchain.verifySig(Blockchain.sign.getBytes(), block.getPubKey(), tempRec.getCreatorSigned());
+						break;
+					}
+				}				
+				if(verified) {
+					//this function is to check the last item in the BlockchainQueue
+					//I added this in because before the blockchain would not "link" to each other
+					//this minimized the problem but occasionally there will be two blocks's previous hash value 
+					//point to the same hash value.
+					Iterator<BlockRecord> iterator = Blockchain.BlockchainQueue.iterator(); 
+					while(iterator.hasNext()){ 
+						temp = iterator.next();
+					} 	
+					
+					tempRec.setPreviousHash(temp.getHash());
+					Work test = new Work(tempRec);				//do some work here
+					if(test.proofWork() == true) {				//if the proof of Work is valid and the block is not already in the block chain
+						tempRec.setHash(test.getHash());		//set the Hash number
+						tempRec.setRandomSeed(test.getSeed());	//set the winning seed
+						tempRec.setVerificationProcessID(Integer.toString(Blockchain.PID));		//set the winning process ID number	
+						
+						if(Blockchain.blockchain.indexOf(tempRec.getData().substring(1, 9)) < 0) {		//check again for duplicate in the block chain 
+							Blockchain.blockchain+=tempRec.getData();
+						}
+						
+						//send the string of block chain and send the temporary block record to the blockChainServer in json object
+						//to every server port including the current one
+						for(int i=0; i < Blockchain.numProcesses; i++){
+							BlockChainSock = new Socket(Blockchain.serverName, Ports.BlockchainServerPortBase + i);
+							toBlockChainServer = new PrintStream(BlockChainSock.getOutputStream());
+							toBlockChainServer.println(Blockchain.blockchain);
+							Gson gson = new GsonBuilder().setPrettyPrinting().create();
+							toBlockChainServer.println(gson.toJson(tempRec)); 
+							toBlockChainServer.flush();
+							BlockChainSock.close();
+						}
+					}
+				}
+				Thread.sleep(1500);
+			}
+		}catch (Exception e) {System.out.println(e);}
+	}
+}
+
+
+//class to do work and calculate hash value
+class Work {
+	static BlockRecord tempRec;
+	public Work(BlockRecord tempRec) {
+		this.tempRec= tempRec;
+	}
+	
+	//to turn a byte array to string 
+	public static String ByteArrayToString(byte[] ba){
+		StringBuilder hex = new StringBuilder(ba.length * 2);
+		for(int i=0; i < ba.length; i++){
+			hex.append(String.format("%02X", ba[i]));
+		}
+		return hex.toString();
+	}
+
+	public static String randomAlphaNumeric(int count) {
+		StringBuilder builder = new StringBuilder();
+		while (count-- != 0) {
+			int character = (int)(Math.random()*ALPHA_NUMERIC_STRING.length());
+			builder.append(ALPHA_NUMERIC_STRING.charAt(character));
+		}
+		return builder.toString();
+	}
+  
+	private static final String ALPHA_NUMERIC_STRING = "abcdefghijklmopqrstuvwzyxABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	static String randString;					//random string that will contain the winning seed
+	static String stringOut = ""; 				//to store the SHA256 hash value
+	static Random r = new Random();
+	
+	public static boolean proofWork(){
+		String data = "";  
+		randString = randomAlphaNumeric(8);
+		int workNumber = 0;   
+		
+		//check if the temp record is already in the block chain string or not
+		if(Blockchain.blockchain.indexOf(tempRec.getData().substring(1, 9)) > 0) 
+			return false;
+		
+		try {
+			for(int i=1; i<20; i++){ 		
+				randString = randomAlphaNumeric(8); 				//Create a random string
+				data = tempRec.getData() + randString +tempRec.getPreviousHash(); 	//concatenate the block data, the random string (seed) and the previous hash
+				MessageDigest MD = MessageDigest.getInstance("SHA-256");
+				byte[] bytesHash = MD.digest(data.getBytes("UTF-8")); 				//Hash the concatenated data
+				stringOut = ByteArrayToString(bytesHash); 							// convert byte array to a string 
+				workNumber = Integer.parseInt(stringOut.substring(0,4),16);			// calculate the work number
+				
+				if(Blockchain.blockchain.indexOf(tempRec.getData().substring(1, 9)) > 0)		//check again if the temp record is already in the block chain or not 
+					return false;
+				
+				if (workNumber < 10000){
+					break;
+				}
+			}
+			Thread.sleep((r.nextInt(9) * 100));
+		}catch(Exception ex) {ex.printStackTrace();}
+		return true;
+	}
+	
+	//to get the hash number
+	public static String getHash(){	
+		return stringOut;
+	}
+	
+	//to get the winning seed
+	public static String getSeed(){
+		return randString;
+	}
+}
+
+//block chain worker to process the verified block received from the socket
+class BlockchainWorker extends Thread { 
+    Socket sock; 
+    BlockchainWorker (Socket s) {sock = s;} 
+    public void run(){
+	try{
+	    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+	    String blockData = "";
+	    String blockDataIn;
+		String blockchainLog ="";
+	    while((blockDataIn = in.readLine()) != null){		//read in the information from the socket
+			if(blockDataIn.contains("[First Block]")){		//because I sent the block chain string and the json object,
+				blockchainLog += blockDataIn;				//this is to make sure the block chain string get updated and
+			}												//the data use to correct.
+			else
+				blockData += blockDataIn;					//retrieve the json string				
+	    }
+		
+		Gson gson = new Gson();		
+		BlockRecord br = gson.fromJson(blockData, BlockRecord.class);		//convert the json string back to Block record type
+		Blockchain.BlockchainQueue.add(br);									//add the block record to the block chain
+		callBlockLedgerServer();											//to connect to BlockLedgerServer
+		Blockchain.blockchain = blockchainLog;								//update the block chain string with the current one
+		
+	    sock.close(); 
+		
+	} catch (IOException x){x.printStackTrace();}
+    }
+	
+	//to connect to BlockLedgerServer
+	public static void callBlockLedgerServer(){
+		Socket Sock1;
+		PrintStream toBlockLedgerServer;
+		try {
+			//send the updated Block chain queue to all the processes (include this one) in json string 
+			for(int i=0; i < Blockchain.numProcesses; i++){
+				Sock1 = new Socket(Blockchain.serverName, Ports.BlockLedgerServerPortBase + i);
+				toBlockLedgerServer = new PrintStream(Sock1.getOutputStream());
+				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+				toBlockLedgerServer.println(gson.toJson(Blockchain.BlockchainQueue)); 
+				toBlockLedgerServer.flush();
+				Sock1.close();
+			}
+		}catch(Exception e){}
+	}
+}
+
+//block ledger worker to process the updated ledger received from the socket
+class BlockLedgerWorker extends Thread { 
+    Socket sock;
+	
+    BlockLedgerWorker (Socket s) {sock = s;} 
+    public void run(){
+	try{
+	    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+	    String blockData = "";
+	    String blockDataIn;
+	    while((blockDataIn = in.readLine()) != null){				//read the information from the socket, in this case
+			blockData += blockDataIn;								// it is the block chain queue		
+	    }
+		PriorityBlockingQueue<BlockRecord> tempQueue = new PriorityBlockingQueue<>(100, Blockchain.BlockTSComparator);
+		Gson gson = new Gson();
+		//convert the json string to a linked list of block records
+		LinkedList<BlockRecord> temp = gson.fromJson(blockData, new TypeToken<LinkedList<BlockRecord>>(){}.getType()); 
+		int n = 0;
+		
+		BlockRecord tempBlock = null;
+		//each item in the temp linked list will be added to the priority queue
+		for(BlockRecord item: temp){
+			tempQueue.add(item);
+		}
+		
+		//this is where I have trouble with, the previousHash value does not point to the hash value of the element before it
+		//I was not sure exactly what to do, so I recalculated the hash value and the proof of work, which is not the smartest idea
+		/*for(BlockRecord item: tempQueue){
+			Work test = new Work(item);
+			if(n==0)
+				tempBlock = item;
+			else {
+				item.setPreviousHash(tempBlock.getHash());
+				test.proofWork();
+				item.setHash(test.getHash());
+				item.setRandomSeed(test.getSeed());
+				tempBlock = item;
+			}
+			n++;
+		}*/
+		gson = new Gson();
+		if(Blockchain.PID == 0) {														//if in the process 0, write a json file to disk
+			try (FileWriter writer = new FileWriter("BlockchainLedger.json")) {
+					gson.toJson(Blockchain.BlockchainQueue, writer);
+			} catch (IOException e) {
+					e.printStackTrace();
+			}	
+		}
+		//set the current block chain queue to the updated one
+		Blockchain.BlockchainQueue = tempQueue;
+		
+		
+	} catch (IOException x){x.printStackTrace();}
+    }
+}
+
+// class to start the block ledger server, to receive the updated ledger from processes
+class BlockLedgerServer implements Runnable {
+	public void run(){
+		int q_len = 6; 
+		Socket sock;
+		System.out.println("Starting the Block Ledger server input thread using " + Integer.toString(Ports.BlockLedgerServerPort));
+		try{
+			ServerSocket servsock = new ServerSocket(Ports.BlockLedgerServerPort, q_len);		//start a new server
+			while (true) {											//listen to and accept the socket request
+				sock = servsock.accept();				
+				new BlockLedgerWorker (sock).start();				//start a new worker 
+			}
+		}catch (IOException ioe) {System.out.println(ioe);}			//for any exception
+	}
+}
+
+// class to start the block chain server, to receive the verfied block from processes
+class BlockchainServer implements Runnable {
+    public void run(){
+		int q_len = 6; 
+		Socket sock;
+		System.out.println("Starting the Blockchain server input thread using " + Integer.toString(Ports.BlockchainServerPort));
+		try{
+			ServerSocket servsock = new ServerSocket(Ports.BlockchainServerPort, q_len);			//start a new server
+			while (true) {											//listen to and accept the socket request
+			sock = servsock.accept();	
+			new BlockchainWorker (sock).start(); 					//start a new worker 
+			}
+		}catch (IOException ioe) {System.out.println(ioe);}			//for any exception
+    }
+}
+ 
+public class Blockchain {
+	public static String serverName = "localhost";
+	static String blockchain = "[First Block]"; 								//to store every block record 
+	public static ArrayList<ProcessBlock> processBlock = new ArrayList<>();		//store the processBlock information (pid and public keys)
+	public static String sign = "abcd";				//for sign the block
+	private static KeyPair pair;				//variable for KeyPair
+	public static int PID;						//Process number
+	public static int numProcesses = 3;			//the number of processes
+	
+	//to compare the time stamp of each block record for the PriorityBlockingQueue
+	public static Comparator<BlockRecord> BlockTSComparator = new Comparator<BlockRecord>(){
+		@Override
+		public int compare(BlockRecord b1, BlockRecord b2){
+			String s1 = b1.getTimeStamp();
+			String s2 = b2.getTimeStamp();
+			if (s1 == s2) {return 0;}
+			if (s1 == null) {return -1;}
+			if (s2 == null) {return 1;}
+			return s1.compareTo(s2);
+		}
+    };
+	
+	//the final block chain queue with all the block records after the program works through
+	static PriorityBlockingQueue<BlockRecord> BlockchainQueue = new PriorityBlockingQueue<>(100, BlockTSComparator);
+	//to store the received UVB for later use
+	final static PriorityBlockingQueue<BlockRecord> PriorityQueue = new PriorityBlockingQueue<>(100, BlockTSComparator);
+	
+	//for verifying the signature from the unverified block 
+	public static boolean verifySig(byte[] data, PublicKey key, byte[] sig) throws Exception {
+		Signature signer = Signature.getInstance("SHA1withRSA");
+		signer.initVerify(key);
+		signer.update(data);
+		return (signer.verify(sig));
+	}	
+		
+	//for creating a signature for the block record
+	public static  byte[] signData(byte[] data, PrivateKey key) throws Exception {
+		Signature signer = Signature.getInstance("SHA1withRSA");
+		signer.initSign(key);
+		signer.update(data);
+		return (signer.sign());
+	}
+	
+	//generated the key pair (public/private key)
+	public KeyPair generateKeyPair() {
+		KeyPair pair = null;
+		try {
+			KeyPairGenerator keyGenerator = KeyPairGenerator.getInstance("RSA");
+			SecureRandom rng = SecureRandom.getInstance("SHA1PRNG", "SUN");
+			rng.setSeed(new Random().nextInt(100));
+			keyGenerator.initialize(1024, rng);
+			pair = keyGenerator.generateKeyPair();
+			return pair;
+		} catch (Exception e) {}
+		return pair;
+	}
+	
+	//read from the file and then input it in the block record
+	public static void input(){
+		int iFNAME = 0;
+		int iLNAME = 1;
+		int iDOB = 2;
+		int iSSNUM = 3;
+		int iFavorite_show = 4;
+		int iSteamingService = 5;
+		int iNextShow = 6;
+		String FILENAME;		
+		
+		//depend on the PID, read the corresponding file
+		switch(PID){
+			case 1: FILENAME = "BlockInput1.txt"; break;
+			case 2: FILENAME = "BlockInput2.txt"; break;
+			default: FILENAME= "BlockInput0.txt"; break;
+		}
+
+		System.out.println("Using input file: " + FILENAME);
+
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(FILENAME)); //read the file
+			String[] tokens = new String[10];			//to store the individual data from the file
+			String InputLineStr;
+			String suuid;								//to store the blockID
+			UUID idA;
+			BlockRecord tempRec;      
+			
+			BlockRecord dummyBlock = new BlockRecord();			//create first (dummy) block record, 
+			suuid = new String(UUID.randomUUID().toString());	//create a uuid for the block ID
+			dummyBlock.setBlockID(suuid);
+			//set the dummy block record's data corresponding with the input data
+			dummyBlock.setFname("First");
+			dummyBlock.setLname("Block");
+			dummyBlock.setVerificationProcessID("0");
+			dummyBlock.setPreviousHash("00000000000000000000");	//initialize the previousHash value
+																//Should I let it point to itself?
+			Work test = new Work(dummyBlock);				//do some work for the first block 
+			if(test.proofWork() == true) {					
+				dummyBlock.setHash(test.getHash());			//set the Hash number
+				dummyBlock.setRandomSeed(test.getSeed());	//set the winning seed	
+			}
+			//add the block record to the priority queue
+			Blockchain.BlockchainQueue.add(dummyBlock);
+			
+			while ((InputLineStr = br.readLine()) != null) {		//read line by line
+	
+				BlockRecord BR = new BlockRecord(); 
+				try{Thread.sleep(1001);}catch(InterruptedException e){}
+				Date date = new Date();										//generate date for the time stamp
+				String T1 = String.format("%1$s %2$tF.%2$tT", "", date);
+				String TimeStampString = T1 + "." + PID; 
+				BR.setTimeStamp(TimeStampString); 					//set the time received 
+
+				suuid = new String(UUID.randomUUID().toString());	//generate blockID
+				BR.setBlockID(suuid);
+				tokens = InputLineStr.split(" +"); 					// split the string read from the file and put in an array
+				//set the block record's data corresponding with the input data
+				BR.setFname(tokens[iFNAME]);
+				BR.setLname(tokens[iLNAME]);
+				BR.setSSNum(tokens[iSSNUM]);
+				BR.setDOB(tokens[iDOB]);
+				BR.setfavorite_show(tokens[iFavorite_show]);
+				BR.setsteamingService(tokens[iSteamingService]);
+				BR.setNextShow(tokens[iNextShow]);
+				BR.setCreatorProcess(Integer.toString(Blockchain.PID));
+				try {
+					BR.setCreatorSigned(signData(sign.getBytes(), pair.getPrivate()));
+				} catch (Exception e) {}
+				//add the block record to the priority queue
+				PriorityQueue.add(BR);
+			}
+		}catch (IOException e) {e.printStackTrace();}
+	}
+	
+	//multicast the key to all the servers
+	public static void KeySend (KeyPair pair){ 
+		Socket sock;
+		PrintStream toServer;
+		try{
+			//send the public key to all the servers (include this one) in json string 
+			for(int i=0; i< numProcesses; i++){	
+				sock = new Socket(serverName, Ports.KeyServerPortBase + i);
+				toServer = new PrintStream(sock.getOutputStream());
+				byte[] byte_key = pair.getPublic().getEncoded();					//get the public string in byte format
+				String publicKey = Base64.getEncoder().encodeToString(byte_key);	//encode the public key with base 64 to string format
+				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+				String json = gson.toJson(publicKey);								//convert the string to json
+				toServer.println(PID);												//send to the server process ID
+				toServer.println(json);												//send to the server the json string
+				toServer.flush();
+				sock.close();
+			}
+		}catch (Exception x) {x.printStackTrace ();}
+    }
+
+    public void UnverifiedSend (){ 
+
+		Socket UVBsock; 
+		BlockRecord tempRec;
+		Random r = new Random();
+	
+		try{
+			Blockchain.input();						//read in the file input
+			Iterator<BlockRecord> iterator = PriorityQueue.iterator();
+
+			PrintStream toServerOOS = null; 
+			
+			//Using this method to send the unverified block 
+			// Send the Unverified Blocks to each process including this one
+			for(int i = 0; i < numProcesses; i++){
+				System.out.println("Sending UVBs to process " + i + "...");			
+				iterator = PriorityQueue.iterator();
+				//when there are still items in the queue, continue to send the data to each server
+				while(iterator.hasNext()){					
+					UVBsock = new Socket(serverName, Ports.UnverifiedBlockServerPortBase + i);
+					toServerOOS = new PrintStream(UVBsock.getOutputStream());
+					//When I used this, process 2 has a lot data compare to process 0 
+					//and process 1 also has a lot more data than process 0
+					//so this is to help other process to catch up with process 0
+					if( i ==0 )
+						Thread.sleep((r.nextInt(9) * 200));
+					else if ( i == 1)
+						Thread.sleep((r.nextInt(9) * 150));
+					else
+						Thread.sleep((r.nextInt(9) * 100));
+					
+					tempRec = iterator.next();
+					Gson gson = new GsonBuilder().setPrettyPrinting().create();
+					toServerOOS.println(gson.toJson(tempRec)); 		// Send the unverified block in json string
+					toServerOOS.flush();
+					UVBsock.close();
+				} 
+			}
+	    
+			Thread.sleep((r.nextInt(9) * 100));
+		
+		}catch (Exception x) {}
+    }
+	
+	public static void main(String args[]){
+		Blockchain block = new Blockchain();
+		block.run(args);
+	}
+	
+	public static void run (String args[]){
+		//take in the arguments from the cmd
+		if (args.length < 1)	
+			PID = 0;
+		else
+			PID = Integer.parseInt(args[0]);
+		
+		System.out.println("Linh Do's rudimentary block chain");
+		System.out.println("Using processID " + PID + "\n");
+			
+		pair = new Blockchain().generateKeyPair();						//generate public/private key 	
+		new Ports().setPorts(PID);										//calculate the port number base on the process number		
+		new Thread(new PublicKeyServer()).start();						//start public key server thread   
+		new Thread(new UnverifiedBlockServer(PriorityQueue)).start(); 	//start unverified block server thread
+		new Thread(new BlockchainServer()).start();						//start block chain server thread 	
+		new Thread(new BlockLedgerServer()).start();					//start block ledger server thread 
+
+		//sleep so other process can catch up
+		try{
+			Thread.sleep(1000);
+		}catch(Exception e){} 
+		
+		KeySend(pair);							//multicast the public key to other processes
+		
+		try{
+			Thread.sleep(1000);
+		}catch(Exception e){} 
+		
+		new Blockchain().UnverifiedSend();		//start to read the input and send the information to other process
+		
+		try{
+			Thread.sleep(1000);
+		}catch(Exception e){}
+		
+		new Thread(new UnverifiedBlockConsumer(PriorityQueue)).start();		//start processing the information received from other process 
+		
+		try{Thread.sleep(1000);}catch(Exception e){}
+	}		
+}
+
+[{"BlockID":"8a9efab8-353a-4171-834b-fddca2318bb5","Fname":"First","Lname":"Block","VerificationProcessID":"0","Hash":"CEC1608AD78393339ED7ABD438BEFD811B50D47F74556EF07F5B61BD72932298","PreviousHash":"00000000000000000000","RandomSeed":"jWhfoxTD"},{"BlockID":"d492436c-ddce-41cb-b68e-08d66098e5e6","TimeStamp":" 2021-03-03.21:32:42.0","Fname":"Sean","Lname":"Willow","SSNum":"319-45-2918","DOB":"1990.08.15","favorite_show":"Avenger","steamingService":"Netflix","NextShow":"QueenGambit","VerificationProcessID":"2","Hash":"194E5D8BA85DAB8BBF808B51E6C83F75932715F88F77725BC5FA3C7184347650","PreviousHash":"CEC1608AD78393339ED7ABD438BEFD811B50D47F74556EF07F5B61BD72932298","RandomSeed":"Se1PRgKV","creatorProcess":"0","creatorSigned":[26,110,50,-121,-36,42,-77,-62,-36,-85,3,118,49,-30,-63,-81,-45,62,-62,-49,-93,123,-1,-63,21,109,-72,16,40,-46,116,-70,51,70,93,-23,71,-17,-76,-113,89,-116,23,-45,-37,37,47,-117,-121,75,-57,55,-12,76,116,-71,85,-66,1,74,-128,-96,8,60,-102,87,71,-15,-45,-64,-19,124,68,-44,24,-3,40,-3,16,40,-91,106,-12,-18,-124,31,-58,-80,109,25,124,-108,-118,109,12,108,-126,-114,-70,-53,-120,35,103,51,-7,53,-9,16,117,37,-75,124,17,-5,-71,-7,8,-15,41,-45,-110,24,64,-113,12,118,-39,-58]},{"BlockID":"fb6ca8a1-4aae-4746-b33a-5e8bcfc1796e","TimeStamp":" 2021-03-03.21:32:42.1","Fname":"Bennett","Lname":"Dans","SSNum":"218-45-7829","DOB":"1996.07.10","favorite_show":"Riverdale","steamingService":"Netflix","NextShow":"Bridgerton","VerificationProcessID":"2","Hash":"0B75DF257BC4BB3FA1738F6A8DE1755F2DBCC32D52DC2DF7C5B2281F731EE819","PreviousHash":"194E5D8BA85DAB8BBF808B51E6C83F75932715F88F77725BC5FA3C7184347650","RandomSeed":"LVIMoxFS","creatorProcess":"1","creatorSigned":[17,111,13,38,60,75,-43,56,-9,-1,-75,-34,74,30,117,-99,33,0,-23,116,81,-66,-124,102,-99,-58,48,-101,125,-107,-85,4,-104,56,-77,-108,91,-18,87,-76,-29,-48,27,12,-10,-71,-27,-77,-48,106,18,17,-15,-105,12,-18,97,97,1,-106,-109,-100,-87,-12,3,-16,-43,20,85,-119,120,68,70,-48,-97,-31,62,-106,-34,-58,-92,-87,38,-6,51,102,72,63,7,70,69,32,123,-68,34,-70,-88,-11,-76,-104,-32,117,35,-123,-103,6,-109,-46,-4,92,-49,40,120,-109,-60,97,-60,-12,-5,-106,91,38,64,-24,-86,-98,5,102]},{"BlockID":"e30ccca7-82ad-4608-b469-5583f1800896","TimeStamp":" 2021-03-03.21:32:42.2","Fname":"Megan","Lname":"Kelly","SSNum":"768-45-6789","DOB":"2000.08.31","favorite_show":"Avatar","steamingService":"DisneyPlus","NextShow":"JungleBook","VerificationProcessID":"2","Hash":"1796126D38FDD994B9A4A4F7CEDA1FBCAB24EAF3D8950CF5C6F5E4E5F310CE14","PreviousHash":"0B75DF257BC4BB3FA1738F6A8DE1755F2DBCC32D52DC2DF7C5B2281F731EE819","RandomSeed":"g9hcHjh0","creatorProcess":"2","creatorSigned":[8,-111,79,4,-47,84,-71,52,-81,-65,46,28,74,-55,25,48,-51,126,10,-126,64,68,-64,-7,114,88,-33,37,-52,-48,-38,125,28,-29,-100,-18,85,62,6,5,-106,-13,-118,-74,-4,119,-8,92,64,-49,-30,-4,2,34,-102,-110,9,-45,72,4,-42,-84,-63,43,42,-81,-41,120,50,-106,-64,6,8,90,114,-69,115,-70,114,-11,-95,-80,78,10,86,-8,-43,-126,-93,-23,51,-39,-46,42,-103,3,12,-10,-125,-62,-126,103,-1,-101,-72,75,-113,120,1,122,-111,-24,-123,127,22,-110,40,-56,87,78,49,79,52,1,44,118,101,108]},{"BlockID":"dd733709-0c66-44a4-8748-48f1558a2bee","TimeStamp":" 2021-03-03.21:32:43.0","Fname":"Harry","Lname":"Johnson","SSNum":"219-45-5737","DOB":"1998.02.29","favorite_show":"Matrix","steamingService":"Hulu","NextShow":"LoveActually","VerificationProcessID":"1","Hash":"022883B3C800920BDB84947B6B4EF678D517948E63CCB9A530A5D17BB7DB6AE9","PreviousHash":"1796126D38FDD994B9A4A4F7CEDA1FBCAB24EAF3D8950CF5C6F5E4E5F310CE14","RandomSeed":"RbX4CUXw","creatorProcess":"0","creatorSigned":[26,110,50,-121,-36,42,-77,-62,-36,-85,3,118,49,-30,-63,-81,-45,62,-62,-49,-93,123,-1,-63,21,109,-72,16,40,-46,116,-70,51,70,93,-23,71,-17,-76,-113,89,-116,23,-45,-37,37,47,-117,-121,75,-57,55,-12,76,116,-71,85,-66,1,74,-128,-96,8,60,-102,87,71,-15,-45,-64,-19,124,68,-44,24,-3,40,-3,16,40,-91,106,-12,-18,-124,31,-58,-80,109,25,124,-108,-118,109,12,108,-126,-114,-70,-53,-120,35,103,51,-7,53,-9,16,117,37,-75,124,17,-5,-71,-7,8,-15,41,-45,-110,24,64,-113,12,118,-39,-58]},{"BlockID":"307efdb3-2823-4f7f-a4d6-47c11abd1256","TimeStamp":" 2021-03-03.21:32:43.1","Fname":"Danslief","Lname":"Wilson","SSNum":"278-45-8970","DOB":"1980.03.22","favorite_show":"AllAmerican","steamingService":"Netflix","NextShow":"CowBoyBebop","VerificationProcessID":"1","Hash":"2039A774A761CF9387253FEDEEA98F2A1BD01E87C51AFC269CE9B65EC79D7394","PreviousHash":"022883B3C800920BDB84947B6B4EF678D517948E63CCB9A530A5D17BB7DB6AE9","RandomSeed":"Nra0HDMB","creatorProcess":"1","creatorSigned":[17,111,13,38,60,75,-43,56,-9,-1,-75,-34,74,30,117,-99,33,0,-23,116,81,-66,-124,102,-99,-58,48,-101,125,-107,-85,4,-104,56,-77,-108,91,-18,87,-76,-29,-48,27,12,-10,-71,-27,-77,-48,106,18,17,-15,-105,12,-18,97,97,1,-106,-109,-100,-87,-12,3,-16,-43,20,85,-119,120,68,70,-48,-97,-31,62,-106,-34,-58,-92,-87,38,-6,51,102,72,63,7,70,69,32,123,-68,34,-70,-88,-11,-76,-104,-32,117,35,-123,-103,6,-109,-46,-4,92,-49,40,120,-109,-60,97,-60,-12,-5,-106,91,38,64,-24,-86,-98,5,102]},{"BlockID":"a89f0851-9d0d-4c71-93b5-37ee734f80b4","TimeStamp":" 2021-03-03.21:32:43.2","Fname":"Crysten","Lname":"Harley","SSNum":"389-45-0987","DOB":"2001.02.14","favorite_show":"UmbrellaAcademy","steamingService":"Netflix","NextShow":"Witcher","VerificationProcessID":"1","Hash":"D560535C38DCD41AE2BCD94FB465723559FB0B9B35070A488FD6460B4490D06F","PreviousHash":"2039A774A761CF9387253FEDEEA98F2A1BD01E87C51AFC269CE9B65EC79D7394","RandomSeed":"eecsSUXL","creatorProcess":"2","creatorSigned":[8,-111,79,4,-47,84,-71,52,-81,-65,46,28,74,-55,25,48,-51,126,10,-126,64,68,-64,-7,114,88,-33,37,-52,-48,-38,125,28,-29,-100,-18,85,62,6,5,-106,-13,-118,-74,-4,119,-8,92,64,-49,-30,-4,2,34,-102,-110,9,-45,72,4,-42,-84,-63,43,42,-81,-41,120,50,-106,-64,6,8,90,114,-69,115,-70,114,-11,-95,-80,78,10,86,-8,-43,-126,-93,-23,51,-39,-46,42,-103,3,12,-10,-125,-62,-126,103,-1,-101,-72,75,-113,120,1,122,-111,-24,-123,127,22,-110,40,-56,87,78,49,79,52,1,44,118,101,108]},{"BlockID":"12a2584c-d1e4-4630-a557-53f5aa6e8bdf","TimeStamp":" 2021-03-03.21:32:44.0","Fname":"Hannah","Lname":"Berry","SSNum":"128-45-3278","DOB":"1992.12.30","favorite_show":"BigBangTheory","steamingService":"Netflix","NextShow":"Cinderella","VerificationProcessID":"1","Hash":"2264FF8BA8D466BF1E215B3108CF3B44077DC1A2A8F081F1308CDB4FF902C56C","PreviousHash":"D560535C38DCD41AE2BCD94FB465723559FB0B9B35070A488FD6460B4490D06F","RandomSeed":"mj7y9NJk","creatorProcess":"0","creatorSigned":[26,110,50,-121,-36,42,-77,-62,-36,-85,3,118,49,-30,-63,-81,-45,62,-62,-49,-93,123,-1,-63,21,109,-72,16,40,-46,116,-70,51,70,93,-23,71,-17,-76,-113,89,-116,23,-45,-37,37,47,-117,-121,75,-57,55,-12,76,116,-71,85,-66,1,74,-128,-96,8,60,-102,87,71,-15,-45,-64,-19,124,68,-44,24,-3,40,-3,16,40,-91,106,-12,-18,-124,31,-58,-80,109,25,124,-108,-118,109,12,108,-126,-114,-70,-53,-120,35,103,51,-7,53,-9,16,117,37,-75,124,17,-5,-71,-7,8,-15,41,-45,-110,24,64,-113,12,118,-39,-58]},{"BlockID":"1edfebd0-4782-4ea5-9a8a-6ff8b59cf25c","TimeStamp":" 2021-03-03.21:32:44.1","Fname":"Lisa","Lname":"McCartney","SSNum":"488-45-9499","DOB":"1989.06.23","favorite_show":"DeathNote","steamingService":"Crunchyroll","NextShow":"Haikyu","VerificationProcessID":"1","Hash":"189F3D8D643853B0F69C34536FEB78F75437AA416D4A66F91C6671305047EC50","PreviousHash":"2264FF8BA8D466BF1E215B3108CF3B44077DC1A2A8F081F1308CDB4FF902C56C","RandomSeed":"wj9Bo8Wz","creatorProcess":"1","creatorSigned":[17,111,13,38,60,75,-43,56,-9,-1,-75,-34,74,30,117,-99,33,0,-23,116,81,-66,-124,102,-99,-58,48,-101,125,-107,-85,4,-104,56,-77,-108,91,-18,87,-76,-29,-48,27,12,-10,-71,-27,-77,-48,106,18,17,-15,-105,12,-18,97,97,1,-106,-109,-100,-87,-12,3,-16,-43,20,85,-119,120,68,70,-48,-97,-31,62,-106,-34,-58,-92,-87,38,-6,51,102,72,63,7,70,69,32,123,-68,34,-70,-88,-11,-76,-104,-32,117,35,-123,-103,6,-109,-46,-4,92,-49,40,120,-109,-60,97,-60,-12,-5,-106,91,38,64,-24,-86,-98,5,102]},{"BlockID":"5fe57b14-f748-45ee-9bd4-45820ccf3a2e","TimeStamp":" 2021-03-03.21:32:45.0","Fname":"Alison","Lname":"Clair","SSNum":"121-45-9281","DOB":"1988.04.09","favorite_show":"WandaVision","steamingService":"DisneyPlus","NextShow":"HannahMontana","VerificationProcessID":"0","Hash":"19585789334277FCB8AAF38AB8AB3A010AA37B4AB44820819581405B5E9902FB","PreviousHash":"189F3D8D643853B0F69C34536FEB78F75437AA416D4A66F91C6671305047EC50","RandomSeed":"B482S8Xg","creatorProcess":"0","creatorSigned":[26,110,50,-121,-36,42,-77,-62,-36,-85,3,118,49,-30,-63,-81,-45,62,-62,-49,-93,123,-1,-63,21,109,-72,16,40,-46,116,-70,51,70,93,-23,71,-17,-76,-113,89,-116,23,-45,-37,37,47,-117,-121,75,-57,55,-12,76,116,-71,85,-66,1,74,-128,-96,8,60,-102,87,71,-15,-45,-64,-19,124,68,-44,24,-3,40,-3,16,40,-91,106,-12,-18,-124,31,-58,-80,109,25,124,-108,-118,109,12,108,-126,-114,-70,-53,-120,35,103,51,-7,53,-9,16,117,37,-75,124,17,-5,-71,-7,8,-15,41,-45,-110,24,64,-113,12,118,-39,-58]},{"BlockID":"e0079f81-22b7-4a64-8a66-22ef5bdb7134","TimeStamp":" 2021-03-03.21:32:45.1","Fname":"Anna","Lname":"Landon","SSNum":"456-45-768","DOB":"1990.11.27","favorite_show":"Obsession","steamingService":"Hulu","NextShow":"CrashLandingOnYou","VerificationProcessID":"1","Hash":"0F987C290CFE45E80C4B87292A7E53DEA14D43C3C00723F39E454EF9B72A4E6E","PreviousHash":"19585789334277FCB8AAF38AB8AB3A010AA37B4AB44820819581405B5E9902FB","RandomSeed":"q96ZgQFu","creatorProcess":"1","creatorSigned":[17,111,13,38,60,75,-43,56,-9,-1,-75,-34,74,30,117,-99,33,0,-23,116,81,-66,-124,102,-99,-58,48,-101,125,-107,-85,4,-104,56,-77,-108,91,-18,87,-76,-29,-48,27,12,-10,-71,-27,-77,-48,106,18,17,-15,-105,12,-18,97,97,1,-106,-109,-100,-87,-12,3,-16,-43,20,85,-119,120,68,70,-48,-97,-31,62,-106,-34,-58,-92,-87,38,-6,51,102,72,63,7,70,69,32,123,-68,34,-70,-88,-11,-76,-104,-32,117,35,-123,-103,6,-109,-46,-4,92,-49,40,120,-109,-60,97,-60,-12,-5,-106,91,38,64,-24,-86,-98,5,102]},{"BlockID":"598bad73-a543-46c8-9981-776c4e85643b","TimeStamp":" 2021-03-03.21:32:45.2","Fname":"John","Lname":"Sonnett","SSNum":"879-45-1928","DOB":"1989.09.28","favorite_show":"StrangerThings","steamingService":"Netflix","NextShow":"Ozark","VerificationProcessID":"0","Hash":"11D1C3124E30AA6430EFBE649287688EE7FB7DF8987A0477D7FE006391C98124","PreviousHash":"0F987C290CFE45E80C4B87292A7E53DEA14D43C3C00723F39E454EF9B72A4E6E","RandomSeed":"UidTdeSi","creatorProcess":"2","creatorSigned":[8,-111,79,4,-47,84,-71,52,-81,-65,46,28,74,-55,25,48,-51,126,10,-126,64,68,-64,-7,114,88,-33,37,-52,-48,-38,125,28,-29,-100,-18,85,62,6,5,-106,-13,-118,-74,-4,119,-8,92,64,-49,-30,-4,2,34,-102,-110,9,-45,72,4,-42,-84,-63,43,42,-81,-41,120,50,-106,-64,6,8,90,114,-69,115,-70,114,-11,-95,-80,78,10,86,-8,-43,-126,-93,-23,51,-39,-46,42,-103,3,12,-10,-125,-62,-126,103,-1,-101,-72,75,-113,120,1,122,-111,-24,-123,127,22,-110,40,-56,87,78,49,79,52,1,44,118,101,108]},{"BlockID":"f7778bd4-3b85-4677-b0d4-156d581f61cc","TimeStamp":" 2021-03-03.21:32:46.2","Fname":"Carrie","Lname":"Diary","SSNum":"982-45-1246","DOB":"1994.11.25","favorite_show":"TheGoodDoctor","steamingService":"Hulu","NextShow":"LawAndOrder","VerificationProcessID":"0","Hash":"10176F9550BAA0FC74E4C335A30E0C74116DEEE3A0135A1B13080548DF3B3B59","PreviousHash":"11D1C3124E30AA6430EFBE649287688EE7FB7DF8987A0477D7FE006391C98124","RandomSeed":"YKajqzz1","creatorProcess":"2","creatorSigned":[8,-111,79,4,-47,84,-71,52,-81,-65,46,28,74,-55,25,48,-51,126,10,-126,64,68,-64,-7,114,88,-33,37,-52,-48,-38,125,28,-29,-100,-18,85,62,6,5,-106,-13,-118,-74,-4,119,-8,92,64,-49,-30,-4,2,34,-102,-110,9,-45,72,4,-42,-84,-63,43,42,-81,-41,120,50,-106,-64,6,8,90,114,-69,115,-70,114,-11,-95,-80,78,10,86,-8,-43,-126,-93,-23,51,-39,-46,42,-103,3,12,-10,-125,-62,-126,103,-1,-101,-72,75,-113,120,1,122,-111,-24,-123,127,22,-110,40,-56,87,78,49,79,52,1,44,118,101,108]}]
+
+PROCESS 0:
+Linh Do's rudimentary block chain
+Using processID 0
+
+Starting the Blockchain server input thread using 4930
+Starting the Block Ledger server input thread using 5120
+Starting Key Server input thread using 4710
+Starting the Unverified Block Server input thread using 4820
+The public key for process 0 is MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCBZHsMSoAf4CkR55czF0njx05ZwwboFPTs0IGNBNdQNcX8jMDzZuazqtfkSei/9TyleAWVhbpOEx75+oj9wiW95ISJGHVAz7mX1+2lRzrBMabKFSwswa0WT+8g78kxSs0qi0JpPI3kZMNFpmpk780DRBPPKXYbu4oIma5lFkVqmwIDAQAB
+Using input file: BlockInput0.txt
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Sending UVBs to process 0...
+Got connection to UVB Server.
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Received UVB:  2021-03-03.21:32:46.2
+Received UVB:  2021-03-03.21:32:44.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.1
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Sending UVBs to process 1...
+Received UVB:  2021-03-03.21:32:45.0
+Sending UVBs to process 2...
+Starting the Unverified Block Priority Queue Consumer thread.
+
+Consumer got unverified: Sean Willow
+Consumer got unverified: Sean Willow
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Alison Clair
+Consumer got unverified: Alison Clair
+Consumer got unverified: Anna Landon
+Consumer got unverified: John Sonnett
+Consumer got unverified: Carrie Diary
+
+PROCESS 1:
+Linh Do's rudimentary block chain
+Using processID 1
+
+Starting the Blockchain server input thread using 4931
+Starting Key Server input thread using 4711
+Starting the Unverified Block Server input thread using 4821
+Starting the Block Ledger server input thread using 5121
+The public key for process 1 is MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCGQnwF9MaHkoMX8V2pZEoNuJKE9oDwdSum0SmvOUcGXA3cssv/7ZVYctqJYgDArQUFt8KvOhQuRKKXodTTDdLsFkxJZnBBijwTbC15j+ztRpsP+XtMKHO7i1fGdXHvu9kT5sQCv6tflRZy88tCn81DNjbQNKw+PhAs10zcMeqQLQIDAQAB
+Using input file: BlockInput1.txt
+Sending UVBs to process 0...
+Got connection to UVB Server.
+Sending UVBs to process 1...
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Sending UVBs to process 2...
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Starting the Unverified Block Priority Queue Consumer thread.
+
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.0
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Alison Clair
+Consumer got unverified: Anna Landon
+Consumer got unverified: Anna Landon
+Consumer got unverified: Anna Landon
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary
+
+PROCESS 2:
+Linh Do's rudimentary block chain
+Using processID 2
+
+Starting the Unverified Block Server input thread using 4822
+Starting the Blockchain server input thread using 4932
+Starting Key Server input thread using 4712
+Starting the Block Ledger server input thread using 5122
+The public key for process 2 is MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCYZcaG/OBMJEa7wsE+vjQRiKC4oHibsAK1N6NMklFLrOakYRi5IiQmjKQ68O/yn2R1Q9nXrcZefW3k2wJboEUOF9j4HRxlTQaUU/Ks+WrgpmFrhbvwRwNr5CQavSMsk5mMVXyn6Y3zNPezk/vMUnmz7Fz9a5ezKXOuHFUZApuakwIDAQAB
+Using input file: BlockInput2.txt
+Sending UVBs to process 0...
+Sending UVBs to process 1...
+Sending UVBs to process 2...
+Got connection to UVB Server.
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.2
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.2
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Starting the Unverified Block Priority Queue Consumer thread.
+
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:45.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:46.2
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Bennett Dans
+Consumer got unverified: Megan Kelly
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.0
+Got connection to UVB Server.
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:42.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:42.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Consumer got unverified: Sean Willow
+Received UVB:  2021-03-03.21:32:43.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:43.0
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:45.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.2
+Got connection to UVB Server.
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:46.2
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:44.1
+Received UVB:  2021-03-03.21:32:44.0
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.1
+Got connection to UVB Server.
+Consumer got unverified: Bennett Dans
+Received UVB:  2021-03-03.21:32:43.1
+Got connection to UVB Server.
+Received UVB:  2021-03-03.21:32:45.0
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Megan Kelly
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Harry Johnson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Danslief Wilson
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Crysten Harley
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Hannah Berry
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Lisa McCartney
+Consumer got unverified: Alison Clair
+Consumer got unverified: Alison Clair
+Consumer got unverified: Anna Landon
+Consumer got unverified: Anna Landon
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: John Sonnett
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary
+Consumer got unverified: Carrie Diary
